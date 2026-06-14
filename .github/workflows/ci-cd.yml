@@ -1,0 +1,143 @@
+name: CI/CD - kind (Monorepo)
+
+on:
+  push:
+    branches: [main, master, gateway-metrics]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # ── 1. BUILD E PUSH DAS IMAGENS ─────────────────────────────────
+  build:
+    name: Build & Push (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: healthcare-gateway
+            dir: api-spring-cloud-gateway-healthcaresys
+          - name: healthcare-api-pacientes
+            dir: healthcare-api-pacientes-spring-rabbitmq
+          - name: healthcare-api-usuarios
+            dir: healthcare-api-users-microservice-spring-rabbitmq
+          - name: healthcare-api-triagem
+            dir: healthcare-api-triagem-spring-rabbitmq
+    outputs:
+      sha_short: ${{ steps.vars.outputs.sha_short }}
+    steps:
+      - name: Checkout Monorepo
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate short SHA
+        id: vars
+        run: echo "sha_short=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.dir }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:latest
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.vars.outputs.sha_short }}
+
+  # ── 2. DEPLOY NO CLUSTER STAGING (KIND) ────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Monorepo
+        uses: actions/checkout@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: staging
+
+      - name: Update images in staging overlay
+        run: |
+          OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          sed -i "s|GITHUB_REPOSITORY_OWNER|$OWNER_LOWER|g" k8s/overlays/staging/kustomization.yaml
+          sed -i "s|IMAGE_TAG|${{ needs.build.outputs.sha_short }}|g" k8s/overlays/staging/kustomization.yaml
+
+      - name: Deploy to staging namespace
+        run: |
+          kubectl apply -k k8s/overlays/staging
+
+      - name: Wait for deployments
+        run: |
+          kubectl rollout status statefulset/postgres -n staging --timeout=180s
+          kubectl rollout status deployment/redis -n staging --timeout=120s
+          kubectl rollout status deployment/rabbitmq -n staging --timeout=180s
+          kubectl rollout status deployment/pacientes -n staging --timeout=240s
+          kubectl rollout status deployment/usuarios -n staging --timeout=240s
+          kubectl rollout status deployment/triagem -n staging --timeout=240s
+          kubectl rollout status deployment/gateway -n staging --timeout=240s
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          kubectl get all -n staging
+          kubectl describe pods -n staging
+          kubectl logs -n staging -l app=gateway --tail=150
+          kubectl logs -n staging -l app=pacientes --tail=150
+          kubectl logs -n staging -l app=usuarios --tail=150
+          kubectl logs -n staging -l app=triagem --tail=150
+
+  # ── 3. DEPLOY NO CLUSTER PRODUCTION (KIND) ─────────────────────
+  deploy-production:
+    name: Deploy to Production
+    needs: [build, deploy-staging]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout Monorepo
+        uses: actions/checkout@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: production
+
+      - name: Update images in production overlay
+        run: |
+          OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          sed -i "s|GITHUB_REPOSITORY_OWNER|$OWNER_LOWER|g" k8s/overlays/production/kustomization.yaml
+          sed -i "s|IMAGE_TAG|${{ needs.build.outputs.sha_short }}|g" k8s/overlays/production/kustomization.yaml
+
+      - name: Deploy to production namespace
+        run: |
+          kubectl apply -k k8s/overlays/production
+
+      - name: Wait for deployments
+        run: |
+          kubectl rollout status statefulset/postgres -n production --timeout=180s
+          kubectl rollout status deployment/redis -n production --timeout=120s
+          kubectl rollout status deployment/rabbitmq -n production --timeout=180s
+          kubectl rollout status deployment/pacientes -n production --timeout=240s
+          kubectl rollout status deployment/usuarios -n production --timeout=240s
+          kubectl rollout status deployment/triagem -n production --timeout=240s
+          kubectl rollout status deployment/gateway -n production --timeout=240s
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          kubectl get all -n production
+          kubectl describe pods -n production
+          kubectl logs -n production -l app=gateway --tail=150
+          kubectl logs -n production -l app=pacientes --tail=150
+          kubectl logs -n production -l app=usuarios --tail=150
+          kubectl logs -n production -l app=triagem --tail=150
