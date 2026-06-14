@@ -1,0 +1,135 @@
+name: CI/CD - kind (gratuito)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── 1. Build e teste das imagens ──────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        api: [api-usuarios, api-produtos, api-pedidos, api-pagamentos]
+    outputs:
+      sha: ${{ steps.meta.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        run: echo "sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+
+      - name: Build e Push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.api }}
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.api }}:latest
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.api }}:${{ steps.meta.outputs.sha }}
+
+  # ── 2. Deploy no cluster STAGING (kind) ───────────────────────
+  deploy-staging:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar kind e kubectl
+        run: |
+          curl -sLo kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
+          chmod +x kind && sudo mv kind /usr/local/bin/
+          curl -sLO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
+      - name: Criar cluster staging
+        run: |
+          kind create cluster --name staging --wait 60s
+
+      - name: Criar namespace
+        run: kubectl create namespace staging
+
+      - name: Atualizar imagem nos manifests
+        run: |
+          SHA=${GITHUB_SHA::8}
+          for api in api-usuarios api-produtos api-pedidos api-pagamentos; do
+            sed -i "s|:latest|:$SHA|g" $api/k8s/deployment.yaml
+            sed -i "s|SEU_USUARIO|${{ github.repository_owner }}|g" $api/k8s/deployment.yaml
+          done
+
+      - name: Carregar imagens no kind (sem registry externo)
+        run: |
+          SHA=${GITHUB_SHA::8}
+          for api in api-usuarios api-produtos api-pedidos api-pagamentos; do
+            docker pull ghcr.io/${{ github.repository_owner }}/$api:$SHA
+            kind load docker-image ghcr.io/${{ github.repository_owner }}/$api:$SHA --name staging
+          done
+
+      - name: Deploy das 4 APIs no staging
+        run: |
+          for api in api-usuarios api-produtos api-pedidos api-pagamentos; do
+            kubectl apply -f $api/k8s/ --namespace=staging
+          done
+          kubectl rollout status deployment --namespace=staging --timeout=120s
+
+      - name: Verificar pods no staging
+        run: kubectl get pods -n staging
+
+  # ── 3. Deploy no cluster PRODUCAO (kind) ─────────────────────
+  deploy-production:
+    needs: deploy-staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar kind e kubectl
+        run: |
+          curl -sLo kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
+          chmod +x kind && sudo mv kind /usr/local/bin/
+          curl -sLO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
+      - name: Criar cluster producao
+        run: |
+          kind create cluster --name producao --wait 60s
+
+      - name: Criar namespace
+        run: kubectl create namespace production
+
+      - name: Atualizar imagem nos manifests
+        run: |
+          SHA=${GITHUB_SHA::8}
+          for api in api-usuarios api-produtos api-pedidos api-pagamentos; do
+            sed -i "s|:latest|:$SHA|g" $api/k8s/deployment.yaml
+            sed -i "s|SEU_USUARIO|${{ github.repository_owner }}|g" $api/k8s/deployment.yaml
+          done
+
+      - name: Carregar imagens no kind
+        run: |
+          SHA=${GITHUB_SHA::8}
+          for api in api-usuarios api-produtos api-pedidos api-pagamentos; do
+            docker pull ghcr.io/${{ github.repository_owner }}/$api:$SHA
+            kind load docker-image ghcr.io/${{ github.repository_owner }}/$api:$SHA --name producao
+          done
+
+      - name: Deploy das 4 APIs na producao
+        run: |
+          for api in api-usuarios api-produtos api-pedidos api-pagamentos; do
+            kubectl apply -f $api/k8s/ --namespace=production
+          done
+          kubectl rollout status deployment --namespace=production --timeout=180s
+
+      - name: Verificar pods na producao
+        run: kubectl get pods -n production

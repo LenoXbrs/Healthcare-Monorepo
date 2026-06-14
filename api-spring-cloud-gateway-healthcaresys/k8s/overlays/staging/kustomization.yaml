@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: staging
+
+patches:
+  - target:
+      kind: Namespace
+      name: healthcare
+    patch: |
+      - op: replace
+        path: /metadata/name
+        value: staging
+
+images:
+  - name: healthcare-gateway
+    newName: ghcr.io/GITHUB_REPOSITORY_OWNER/healthcare-gateway
+    newTag: IMAGE_TAG
+  - name: healthcare-api-pacientes
+    newName: ghcr.io/GITHUB_REPOSITORY_OWNER/healthcare-api-pacientes
+    newTag: IMAGE_TAG
+  - name: healthcare-api-usuarios
+    newName: ghcr.io/GITHUB_REPOSITORY_OWNER/healthcare-api-usuarios
+    newTag: IMAGE_TAG
+  - name: healthcare-api-triagem
+    newName: ghcr.io/GITHUB_REPOSITORY_OWNER/healthcare-api-triagem
+    newTag: IMAGE_TAG

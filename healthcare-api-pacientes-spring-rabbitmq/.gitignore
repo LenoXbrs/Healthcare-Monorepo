@@ -1,0 +1,14 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+/bin/
+/.classpath
+/.project
+/.settings/
+/.lazyheaders/
+.idea/
+*.iws
+*.iml
+*.ipr
+.gradle/
+build/
+.DS_Store

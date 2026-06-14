@@ -1,0 +1,54 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # ── Apps no host (Windows/Mac: host.docker.internal) ───────────────────────
+  - job_name: healthcare-gateway
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          application: healthcare-gateway
+          service: gateway
+
+  - job_name: healthcare-pacientes
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8081']
+        labels:
+          application: healthcare-api-pacientes
+          service: pacientes
+
+  - job_name: healthcare-usuarios
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8082']
+        labels:
+          application: healthcare-api-usuarios
+          service: usuarios
+
+  - job_name: healthcare-triagem
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8083']
+        labels:
+          application: healthcare-api-triagem
+          service: triagem
+
+  # ── Prometheus self-monitor ───────────────────────────────────────────────
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+# ── Targets Docker (descomente e comente o bloco acima se usar compose full) ─
+#  - job_name: healthcare-docker
+#    metrics_path: /actuator/prometheus
+#    static_configs:
+#      - targets:
+#          - api-gateway:8080
+#          - api-pacientes:8081
+#          - api-usuarios:8082
+#          - api-triagem:8083
+#        labels:
+#          environment: docker

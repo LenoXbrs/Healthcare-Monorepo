@@ -1,0 +1,178 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Base Colors - Techno-Noir */
+  --color-bg-root: #0A0E1A;
+  --color-surface-1: #0D1B3E;
+  --color-surface-2: #112244;
+  --color-glass: rgba(26, 37, 80, 0.75);
+  --color-glass-light: rgba(30, 45, 92, 0.85);
+  --color-border: rgba(122, 144, 184, 0.2);
+  --color-text-muted: #7A90B8;
+  --color-text-faint: #C8D4F0;
+  --color-text-on-dark: #F0F4FF;
+
+  /* Acentos */
+  --color-accent-1: #00D4CC;
+  --color-accent-2: #00F5E4;
+  --color-accent-3: #0099FF;
+
+  /* Status Clínico (Manchester) */
+  --triage-critical: #FF2D55;
+  --triage-urgent: #FF6B00;
+  --triage-semi: #FFD600;
+  --triage-low: #00C853;
+  --triage-none: #2196F3;
+}
+
+/* Custom Reset & Scrollbar */
+body {
+  background-color: var(--color-bg-root);
+  color: var(--color-text-on-dark);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar for Techno-Noir Theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-root);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-2);
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent-1);
+}
+
+/* Glassmorphism Classes */
+.glass-card {
+  background: rgba(13, 27, 62, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-elevated {
+  background: rgba(30, 45, 92, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-critical {
+  background: rgba(255, 45, 85, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 45, 85, 0.4);
+}
+
+.glass-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-hover:hover {
+  background: rgba(0, 212, 204, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-color: rgba(0, 212, 204, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Keyframes Animations */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(255, 45, 85, 0.4); }
+  50% { box-shadow: 0 0 32px rgba(255, 45, 85, 0.8); }
+}
+.animate-pulse-critical {
+  animation: pulseGlow 1.2s infinite ease-in-out;
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.animate-glow-pulse {
+  animation: glowPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Custom form and buttons styling */
+.btn-primary {
+  background: linear-gradient(90deg, #00D4CC 0%, #0099FF 100%);
+  color: #0A0E1A;
+  font-weight: 700;
+  box-shadow: 0 0 24px rgba(0, 212, 204, 0.35);
+  transition: all 0.2s ease-in-out;
+}
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+  box-shadow: 0 0 32px rgba(0, 212, 204, 0.5);
+  transform: translateY(-1px);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid rgba(0, 212, 204, 0.4);
+  color: #00D4CC;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(0, 212, 204, 0.08);
+  border-color: #00D4CC;
+}
+
+.btn-danger {
+  background: #FF2D55;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 0 24px rgba(255, 45, 85, 0.35);
+  transition: all 0.2s ease-in-out;
+}
+.btn-danger:hover:not(:disabled) {
+  opacity: 0.9;
+  box-shadow: 0 0 32px rgba(255, 45, 85, 0.5);
+}
+
+.form-input {
+  background-color: rgba(13, 27, 62, 0.6);
+  border: 1px solid rgba(122, 144, 184, 0.2);
+  color: #F0F4FF;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: all 0.2s ease-in-out;
+}
+.form-input:focus {
+  outline: none;
+  border-color: #00D4CC;
+  box-shadow: 0 0 0 3px rgba(0, 212, 204, 0.15);
+}
+.form-input::placeholder {
+  color: rgba(122, 144, 184, 0.5);
+  font-style: italic;
+}

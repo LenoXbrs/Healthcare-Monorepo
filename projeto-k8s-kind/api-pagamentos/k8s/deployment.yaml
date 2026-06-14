@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-pagamentos
+  labels:
+    app: api-pagamentos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-pagamentos
+  template:
+    metadata:
+      labels:
+        app: api-pagamentos
+    spec:
+      containers:
+        - name: api-pagamentos
+          image: ghcr.io/SEU_USUARIO/api-pagamentos:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"

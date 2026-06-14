@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: healthcare-config
+  namespace: healthcare
+data:
+  PACIENTES_URL: "http://pacientes-service:8081"
+  USUARIOS_URL: "http://usuarios-service:8082"
+  TRIAGEM_URL: "http://triagem-service:8083"
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+  DB_USER: "postgres"
+  DB_NAME_PACIENTES: "healthcare_pacientes"
+  DB_NAME_USUARIOS: "healthcare_users"
+  DB_NAME_TRIAGEM: "healthcare_triagem"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  RABBITMQ_HOST: "rabbitmq-service"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_USER: "guest"

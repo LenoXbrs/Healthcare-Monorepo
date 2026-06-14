@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: usuarios
+  namespace: healthcare
+  labels:
+    app: usuarios
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: usuarios
+  template:
+    metadata:
+      labels:
+        app: usuarios
+    spec:
+      initContainers:
+        - name: wait-for-infra
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres-service 5432; do echo "aguardando postgres..."; sleep 3; done
+              until nc -z rabbitmq-service 5672; do echo "aguardando rabbitmq..."; sleep 3; done
+              until nc -z redis-service 6379; do echo "aguardando redis..."; sleep 3; done
+      containers:
+        - name: usuarios
+          image: healthcare-api-usuarios:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          envFrom:
+            - configMapRef:
+                name: healthcare-config
+            - secretRef:
+                name: healthcare-secrets
+          env:
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: healthcare-config
+                  key: DB_NAME_USUARIOS
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 90
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 200m
+            limits:
+              memory: 768Mi
+              cpu: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: usuarios-service
+  namespace: healthcare
+spec:
+  selector:
+    app: usuarios
+  ports:
+    - port: 8082
+      targetPort: 8082

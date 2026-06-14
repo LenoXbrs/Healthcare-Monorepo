@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-produtos
+  labels:
+    app: api-produtos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-produtos
+  template:
+    metadata:
+      labels:
+        app: api-produtos
+    spec:
+      containers:
+        - name: api-produtos
+          image: ghcr.io/SEU_USUARIO/api-produtos:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"

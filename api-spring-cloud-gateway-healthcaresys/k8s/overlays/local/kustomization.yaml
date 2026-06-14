@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# Imagens buildadas localmente (docker build) — ver scripts/build-images.ps1
+images:
+  - name: healthcare-gateway
+    newName: healthcare-gateway
+    newTag: latest
+  - name: healthcare-api-pacientes
+    newName: healthcare-api-pacientes
+    newTag: latest
+  - name: healthcare-api-usuarios
+    newName: healthcare-api-usuarios
+    newTag: latest
+  - name: healthcare-api-triagem
+    newName: healthcare-api-triagem
+    newTag: latest

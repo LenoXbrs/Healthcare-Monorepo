@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-pedidos
+  labels:
+    app: api-pedidos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-pedidos
+  template:
+    metadata:
+      labels:
+        app: api-pedidos
+    spec:
+      containers:
+        - name: api-pedidos
+          image: ghcr.io/SEU_USUARIO/api-pedidos:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"

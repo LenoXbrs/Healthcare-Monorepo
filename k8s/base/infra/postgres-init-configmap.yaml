@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: healthcare
+data:
+  01-init-databases.sql: |
+    CREATE DATABASE healthcare_pacientes;
+    CREATE DATABASE healthcare_users;
+    CREATE DATABASE healthcare_triagem;
